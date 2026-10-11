@@ -1,184 +1,262 @@
 <!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>迷途</title><style>
-html,body{margin:0;height:100%;background:#050607;overflow:hidden;touch-action:none}
-canvas{display:block;width:100vw;height:100vh;object-fit:contain;background:#050607}
-.b{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font:600 18px sans-serif;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none}
-#rot{position:fixed;inset:0;background:#050607;color:#ddd;font:20px sans-serif;display:none;align-items:center;justify-content:center;z-index:9}
-@media(orientation:portrait){#rot{display:flex}}
-</style></head><body><canvas id="c" width="960" height="540"></canvas><div id="rot">请将设备横屏游玩 ↻</div>
+<title>迷途 · 黑暗园区</title><style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none}
+canvas{display:block;width:100vw;height:100vh;object-fit:contain;background:#000}
+.b{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.25);color:#fff;font:600 18px sans-serif;display:none;align-items:center;justify-content:center;user-select:none;touch-action:none}
+#rot{position:fixed;inset:0;background:#000;color:#ddd;font:20px sans-serif;display:none;align-items:center;justify-content:center;z-index:9}
+@media(orientation:portrait){#rot.on{display:flex}}
+</style></head><body><canvas id="c"></canvas><div id="rot">请将设备横屏游玩 ↻</div>
 <script>
-const C=document.getElementById('c'),g=C.getContext('2d'),W=960,H=540,FN='"PingFang SC","Microsoft YaHei",sans-serif';
-const cl=(v,a,b)=>Math.max(a,Math.min(b,v)),X=t=>['小林',t];
-/* ===== 输入：键盘 + 手柄 + 触屏 ===== */
-const keys={},touch={},pv={};let tap=0;
+const C=document.getElementById('c'),g=C.getContext('2d'),W=1280,H=720,GY=620,PH=58,FN='"PingFang SC","Microsoft YaHei",sans-serif';C.width=W;C.height=H;
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v)),N=t=>['',t],Y=t=>['杨磊',t],R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h)};
+function glow(x,y,r,c,a){const q=g.createRadialGradient(x,y,0,x,y,r);q.addColorStop(0,c.replace('A',a));q.addColorStop(1,c.replace('A',0));g.fillStyle=q;g.fillRect(x-r,y-r,2*r,2*r)}
+function T_(t,x,y,s,c,al){g.font=s+'px '+FN;g.fillStyle=c;g.textAlign=al||'left';g.fillText(t,x,y)}
+function wrap(t,mw){const o=[];let s='';for(const c of t){if(g.measureText(s+c).width>mw){o.push(s);s=c}else s+=c}o.push(s);return o}
+/* ===== 输入：键鼠 / 手柄 / 触屏 ===== */
+const keys={},touch={},pv={};let tap=0,ptr=null,MODE='kbm';
 onkeydown=e=>{keys[e.code]=1;if(/Tab|Space|Arrow/.test(e.code))e.preventDefault()};onkeyup=e=>keys[e.code]=0;
-C.addEventListener('pointerdown',()=>tap=1);
+C.addEventListener('pointerdown',e=>{const r=C.getBoundingClientRect(),s=Math.min(r.width/W,r.height/H);ptr={x:(e.clientX-r.left-(r.width-W*s)/2)/s,y:(e.clientY-r.top-(r.height-H*s)/2)/s};tap=1});
 function poll(){
- const a={l:keys.KeyA||touch.l,r:keys.KeyD||touch.r,j:keys.KeyW||touch.j,i:keys.KeyE||touch.i,adv:keys.KeyA||touch.j||tap,up:keys.KeyW||touch.l,dn:keys.KeyS||touch.r,inv:keys.KeyI||keys.Tab||touch.inv,pause:keys.Escape||touch.pause};
+ const a={l:keys.KeyA||keys.ArrowLeft||touch.l,r:keys.KeyD||keys.ArrowRight||touch.r,j:keys.KeyW||keys.ArrowUp||touch.j,i:keys.KeyE||touch.i,adv:keys.KeyA||touch.j||tap,up:keys.KeyW||keys.ArrowUp||touch.l,dn:keys.KeyS||keys.ArrowDown||touch.r,inv:keys.KeyI||keys.Tab||touch.inv,pause:keys.Escape||touch.pause,ok:keys.Enter||keys.Space||keys.KeyE,c:keys.KeyC};
  const gp=[...(navigator.getGamepads?navigator.getGamepads():[])].find(x=>x&&x.connected);
  if(gp){const b=i=>gp.buttons[i]&&gp.buttons[i].pressed,x=gp.axes[0]||0,y=gp.axes[1]||0;
-  a.l|=x<-.3||b(14);a.r|=x>.3||b(15);a.j|=b(0);a.i|=b(1);a.adv|=b(0);a.up|=y<-.5||b(12);a.dn|=y>.5||b(13);a.inv|=b(3);a.pause|=b(9)}
+  a.l|=x<-.3||b(14);a.r|=x>.3||b(15);a.j|=b(0);a.i|=b(1);a.adv|=b(0);a.up|=y<-.5||b(12);a.dn|=y>.5||b(13);a.inv|=b(3);a.pause|=b(9);a.ok|=b(0);a.c|=b(2)}
  tap=0;const e={};for(const k in a){a[k]=!!a[k];e[k]=a[k]&&!pv[k];pv[k]=a[k]}return[a,e]}
-if('ontouchstart' in window){[['l','◀','left:14px'],['r','▶','left:90px'],['j','跳','right:14px'],['i','调查','right:90px'],['inv','包','right:166px'],['pause','☰','right:14px;top:14px;bottom:auto']].forEach(([k,t,s])=>{
- const d=document.createElement('div');d.className='b';d.style.cssText=s;d.textContent=t;
- d.onpointerdown=()=>{touch[k]=1;try{document.documentElement.requestFullscreen().then(()=>screen.orientation.lock('landscape')).catch(()=>{})}catch(_){}};
- d.onpointerup=d.onpointercancel=d.onpointerleave=()=>touch[k]=0;document.body.appendChild(d)})}
-/* ===== 关卡与剧情数据（五章） ===== */
+[['l','◀','left:calc(18px + env(safe-area-inset-left))'],['r','▶','left:112px'],['j','跳','right:18px'],['i','调查','right:104px'],['inv','包','right:190px'],['pause','☰','right:18px;top:14px;bottom:auto;width:56px;height:56px']].forEach(([k,t,s])=>{
+ const d=document.createElement('div');d.className='b';d.dataset.t=1;d.style.cssText=s;d.textContent=t;
+ d.onpointerdown=()=>{touch[k]=1};d.onpointerup=d.onpointercancel=d.onpointerleave=()=>touch[k]=0;document.body.appendChild(d)});
+function amb(){try{const a=new AudioContext(),o=a.createOscillator(),n=a.createGain(),f=a.createBiquadFilter();o.type='sawtooth';o.frequency.value=48;f.frequency.value=180;n.gain.value=.05;o.connect(f).connect(n).connect(a.destination);o.start()}catch(_){}}
+/* ===== 人物绘制 ===== */
+const PAL={me:{t:'#5f7a8a',l:'#2b3138',s:'#e0b890',h:'#1b1a1a'},guard:{t:'#252d33',l:'#171c20',s:'#c9a483',h:'#111',cap:'#171c20'},niu:{t:'#b8742f',l:'#3a3028',s:'#8a5a3a',h:'#111'},ni:{t:'#8e6f8a',l:'#2d2a35',s:'#e6c4a8',h:'#201815',pony:1},zhou:{t:'#4a5258',l:'#20262b',s:'#c9a483',h:'#333',cap:'#2a3238'},long:{t:'#3b3b3b',l:'#222',s:'#d1a98a',h:'#111'}};
+function person(x,y,f,p,t,wk){const s=wk?Math.sin(t*11):0,b=wk?Math.abs(Math.cos(t*11))*2:0;
+ g.save();g.translate(x,y-b);g.scale(f,1);
+ g.fillStyle=p.l;g.fillRect(-8+s*6,-24,7,24);g.fillRect(1-s*6,-24,7,24);
+ g.fillStyle=p.t;g.beginPath();g.roundRect(-11,-45,22,26,6);g.fill();
+ g.save();g.translate(0,-41);g.rotate(-s*.7);g.fillRect(-3,0,7,20);g.restore();
+ g.fillStyle=p.s;g.beginPath();g.arc(2,-53,9,0,7);g.fill();
+ g.fillStyle=p.h;g.beginPath();g.arc(0,-55,9,Math.PI,0);g.fill();if(p.pony)g.fillRect(-12,-56,5,12);
+ if(p.cap)R(-10,-64,20,5,p.cap);g.restore()}
+/* ===== 关卡数据（四个可玩章节 + 过场） ===== */
 const LV=[
-{n:'第一章 · 宿舍区',w:2600,col:'#1b2830',pl:[[560,395,200],[1500,395,200],[1760,310,160]],sh:[[300,110],[1250,120]],np:[[950,1800]],it:[
- {x:420,id:'passport',n:'护照保管单',L:[X('一张单据……"证件统一保管"。'),X('我的护照，为什么在他们手里？')],t:'任何以"统一保管"为由扣押你证件的单位，都不正规。证件只能由本人持有。'},
- {x:1600,y:395,id:'contract',n:'入职"合同"',L:[X('合同全是外文，还写着"离职需赔付培训费"。'),X('当初说好的"高薪、包吃住"，一个字都没写。')],t:'签约前看清条款。口头承诺与合同不符、条款含糊或看不懂，就不要签。'},
- {x:2150,id:'note',n:'室友笔记',L:[X('床板下有张便条："手机信号被限制，别信他们说的话。"'),X('原来不止我一个人觉得不对劲。')],t:'限制通讯、不让你联系家人，是控制类骗局的明显信号。'}]},
-{n:'第二章 · 长走廊',w:3200,col:'#202428',pl:[[700,395,200],[1300,395,200],[1560,310,160],[2450,395,220]],sh:[[480,110],[1150,100],[2100,120]],np:[[700,1500],[1900,2900]],it:[
- {x:520,id:'manual',n:'培训手册',L:[X('手册写着"客户的每一次犹豫，都是机会"。'),X('他们把骗人当成了一门课程。')],t:'"先给甜头、再设门槛"是常见套路：先让你小赚，再诱导你加大投入，最后无法提现。'},
- {x:1620,y:310,id:'script',n:'话术脚本',L:[X('脚本里写着："不干就先还债"。'),X('他们要的是让我们觉得无路可走。'),X('……要不就这样留下算了？')],t:'"你已经欠了债，只能干下去"是典型心理控制话术，请记住：这种债不受法律保护。',c:1},
- {x:2900,id:'roster',n:'排班表',L:[X('排班表上标着巡逻时间。'),X('只要掌握规律，就能找到空隙。')],t:'遇到困境，先冷静观察、记录关键信息（时间、地点、人名），为日后求助保留线索。'}]},
-{n:'第三章 · 后勤仓库',w:3000,col:'#1a1f25',pl:[[600,395,200],[820,310,180],[1600,395,200],[2400,395,200]],sh:[[400,120],[1250,120],[2150,130]],np:[[800,1600],[1900,2700]],it:[
- {x:700,y:395,id:'phone',n:'备用手机',L:[X('货架后面藏着一部旧手机，竟然还有电。'),X('先别急着用，先把关键信息记下来。')],t:'遇到困境立即保存证据：截图、录音、文件，并记牢地点、人名、账号。'},
- {x:1700,y:395,id:'map1',n:'地图残页',L:[X('一角地图：围墙、岗亭、树林……'),X('还差另一半，才能拼出完整路线。')],t:'了解自己所在位置，是求助时最关键的信息之一。'},
- {x:2500,y:395,id:'paper',n:'联系纸条',L:[X('纸条上记着一串号码和"信号窗口"几个字。'),X('这也许是外面唯一的联系方式。')],t:'境外遇险，可联系中国驻外使领馆；12308 是外交部全球领事保护热线。'}]},
-{n:'第四章 · 围墙通道',w:3000,col:'#161c22',pl:[[800,395,200],[1700,395,200],[1960,310,180]],sh:[[500,110],[1400,110],[2300,120]],np:[[600,1400],[1700,2600]],it:[
- {x:900,y:395,id:'map2',n:'完整地图',L:[X('两半地图合在一起了。'),X('树林尽头有一处能收到信号的高地。')],t:'求助渠道：当地报警电话、中国驻外使领馆、国家反诈中心、12381 等官方渠道。'},
- {x:2050,y:310,id:'window',n:'信号窗口表',L:[X('每天凌晨有一小段时间，信号不会被屏蔽。'),X('就是那个时候了。')],t:'求助信息要写清：我是谁、在哪里、发生了什么、需要什么帮助。'}]},
-{n:'第五章 · 外围树林',w:2800,col:'#10181a',pl:[[500,395,200],[1500,395,200],[2000,310,180]],sh:[[350,120],[1000,120],[1800,130]],np:[[800,1900]],term:2550,it:[
- {x:1300,id:'sign',n:'信号点路标',L:[X('树干上的刻痕指向高地。'),X('快到了，不能被发现。')],t:'获救后请第一时间报案、配合调查，也别忘了关注自己的心理恢复。'}]}];
+{n:'第一章 · 牢笼',k:0,w:3000,req:2,pl:[[760,505,220],[1560,505,220],[1820,400,180]],sh:[[430,140],[1250,150],[2250,150]],np:[[1000,1900]],it:[
+ {x:420,id:'slogan',n:'标语：业绩为王',L:[Y('鲜红的标语：业绩为王，多劳多得。'),Y('这里根本不是什么跨境电商公司。')],t:'工作内容是"话术""剧本"、入职后才告知真相，都是诈骗园区的典型特征。'},
+ {x:1300,id:'cage',n:'空铁笼',L:[N('墙角摆着一只铁笼，是空的，却足以震慑每一个新人。'),Y('不能硬碰硬，先学会观察。')],t:'被恐吓、被限制自由时，先保护自身安全，再悄悄记录位置、人员等关键信息。'},
+ {x:2500,id:'niu',n:'阿牛',npc:'niu',L:[['阿牛','别硬碰硬。表面听话，暗地里把巡逻换班、监控死角全记下来。'],Y('我懂了。')],t:'留存证据、记录细节，是日后向警方和领事保护渠道求助最有价值的信息。'}]},
+{n:'第二章 · 泥潭',k:1,w:3200,req:3,pl:[[700,505,220],[1500,505,200],[1760,400,180],[2500,505,240]],sh:[[480,130],[1150,140],[2050,150]],np:[[800,1700],[2000,3000]],it:[
+ {x:560,id:'shift',n:'安保换班时刻表',L:[Y('换班的时刻，一个一个记进脑子里。'),N('写在作业本纸片上，藏进鞋底夹层。')],t:'记录时间、地点、人名、账号，条件允许时分散保存，别只存在一处。'},
+ {x:1600,y:505,id:'blind',n:'摄像头盲区',L:[Y('这一排摄像头之间，有一处死角。')],t:'观察环境、记住监控薄弱处，是在受限环境中保护自己的第一步。'},
+ {x:2200,id:'ni',n:'倪曼宇',npc:'ni',L:[['倪曼宇','园区里背叛随处可见……善意最危险。但我也想出去。'],['倪曼宇','我整理文件时，看过仓库区老图纸，记得排水通道的大致方位。']],t:'能信任的人很少，但有可靠同伴能提高成功率；也要提防被告密。'},
+ {x:2800,id:'niu2',n:'阿牛的消息',npc:'niu',L:[['阿牛','旧仓库那边有废弃排水通道，也许通到围墙外，但入口被杂物封死。'],['阿牛','每天凌晨有几十分钟，信号屏蔽设备检修，手机有机会发消息。']],t:'求助信息要写清：我是谁、在哪里、什么情况、多少人。'}]},
+{n:'第三章 · 暗流',k:2,w:3200,req:2,pl:[[900,505,220],[1500,505,200],[2400,505,240],[2680,400,160]],sh:[[500,140],[1200,140],[2000,150]],np:[[700,1500],[1800,2800]],it:[
+ {x:980,y:505,id:'plan',n:'旧档案图纸',L:[N('堆满灰尘的储物柜里，一张泛黄的图纸。'),Y('旧仓库地下室，通向围墙外的荒草丛……')],t:'记下关键信息，而不是留下实物。被搜走的纸可以丢，记在脑子里的东西搜不走。'},
+ {x:1700,id:'zhou0',n:'倪曼宇的新消息',npc:'ni',L:[['倪曼宇','有个底层保安家里急需用钱，传闻他愿意冒险传递消息。'],['倪曼宇','但真假未知，接触他，也可能被他告发。']],t:'向陌生人求助有风险，核实对方、保留退路，别把全部希望押在一个人身上。'},
+ {x:2500,id:'block',n:'被封堵的通道入口',L:[N('入口堆满废机器和钢筋垃圾，被牢牢封死。'),Y('想清理开，需要大量时间，还不能被监控拍到。')],t:'不盲目冲动。判断风险与代价，再决定行动。'}]},
+{n:'第四章 · 缝隙',k:3,w:3400,req:3,term:3150,pl:[[800,505,220],[1900,505,220],[2150,400,180]],sh:[[450,140],[1250,140],[2400,150]],np:[[600,1500],[1800,2800]],it:[
+ {x:700,id:'zhou',n:'保安老周',npc:'zhou',L:[['老周','……这事一旦败露，所有人都活不好。'],['阿牛','出去以后，我们想尽办法凑钱报答你。'],['老周','只给你们十几分钟，赶在凌晨信号检修时发出去。']],t:'求助信息要写：地点、园区情况、受困人数、身份信息。越详实，救援越可能落地。'},
+ {x:1500,y:505,id:'copy',n:'抄写的求救文本',L:[Y('把同样的求救文本，抄在几张薄纸上。'),Y('就算手机被收走，纸还在。')],t:'证据要有备份：电子的、纸质的、交给可信渠道的，不要只靠一条路。'},
+ {x:2300,y:400,id:'tree',n:'老树树洞',L:[N('仓库外有一棵老树，树洞很深。'),Y('把纸片藏进去，再托老周之后取走。')],t:'把关键证据分散保存、交给可信渠道，哪怕你自己被控制，线索仍能送出去。'}]}];
 const ITEM={};LV.forEach(l=>l.it.forEach(i=>ITEM[i.id]=i));const ALL=Object.keys(ITEM).length;
-const ENDS={A:['成功获救','信号发出，求救信息被官方渠道接收。天亮前，救援人员抵达，小林终于拿回了自己的证件和自由。','获救后请第一时间报警、配合调查，并关注自己的心理恢复。'],
-B:['被发现滞留','小林被带回宿舍"谈话"，暂时失去了行动自由。但她记得每一条线索——只要还有机会，就不要放弃。','求助越早越好：保留证据，记住关键信息，找机会联系110、使领馆或12381。'],
-C:['中途放弃','小林选择了妥协。黑暗里她忍不住想：如果当时再坚持一下，向官方求助，结局会不会不同？','"认命"正是骗局希望你做的。永远不要放弃求助——报警、联系使领馆、使用国家反诈中心App。'],
-D:['隐藏 · 证据保全','你收集了全部关键证据。小林协助警方还原了完整的诈骗链条，多名同伴因此获救。','保全证据、提供线索，是个人对打击诈骗最有力的帮助。']};
+/* ===== 剧情节拍（过场动画 + 对话 + 玩法） ===== */
+const ENDI=18;let f={};
+const B=[
+{c:'chat',L:[N('杨磊，二十二岁，大专毕业半年。简历石沉大海，房租月月要交，父母在小县城打工。'),N('私信弹出来的时候，他快放弃找一份正经工作了。ID叫"海外人事-阿杰"：跨境电商运营，无需经验，月薪一万八，包吃住，机票报销。'),Y('真的不需要学历和经验？地点是哪里？'),['阿杰','东南亚，卖日用百货。出来干一年，攒二十万回去，买房创业都行。不是诈骗，名额不多，抓紧。'],Y('会不会是电诈园区？'),['阿杰','（发来宿舍照和转账记录）网上都是同行抹黑。路费公司先垫，到岗从工资扣就行。']],tip:'高薪 + 零门槛 + 急招 + 先垫路费 + 出境，是典型诈骗特征。"路费先垫、到岗再扣"是用债务绑住你。',ch:[['瞒着父母，收拾背包出发'],['再想想……',[N('可房租、债务、对家人的愧疚压在肩上。侥幸心理钻了出来——万一，真的是好机会呢？')],0,'侥幸心理是骗子最想利用的东西。出境务工，请先通过正规渠道核实。']]},
+{c:'train',L:[N('他瞒着父母，收拾了一个小小的背包，身份证揣在内兜，没有和任何人仔细道别。'),N('绿皮火车一路南下，从省会到边境小城。')]},
+{c:'road',L:[N('接头的人没带他去写字楼，而是夜里坐上越野，钻进连绵漆黑的山林。路边只有树影，没有路灯。'),Y('我想回去……'),['司机','来了就别想着回头。路费公司已经垫了，反悔也要赔钱。']],tip:'一旦被带到偏僻处并以"赔钱"限制离开，说明你已处于被控制的状态。'},
+{c:'gate',L:[N('天亮时分，大巴停在巨大的铁门前。围墙绵延望不到头，墙顶缠着铁丝网，四角立着岗亭。'),['制服男','手机、身份证、护照，全部上交，公司统一保管，离职时归还。'],Y('这根本不是什么跨境电商公司。')],tip:'任何要求上交证件、手机的"公司"都不正规，扣押证件本身违法。'},
+{c:'dorm',L:[N('六个人挤一间宿舍，铁架上下铺，墙面斑驳。有人麻木地盯着地板，有人眼底藏着化不开的恐惧。'),['阿牛','别信他们的鬼话。这里是电信诈骗园区，进来容易，出去难。'],N('杨磊后背发冷。他跨越千里，一头撞进了牢笼。')]},
+{c:'office',L:[N('下午，新人被带进办公大楼。一排排老旧电脑里，不是店铺后台，是成套的聊天话术和杀猪盘剧本。'),['龙哥','来到这里，就守这里的规矩。完成业绩，安稳过日子；完不成，就要接受处罚。别动逃跑的念头。'],N('一个新人崩溃哭喊着要回家，被安保带离。走廊深处的声音渐渐消失，他再没有回到新人队伍中。'),N('夜里，杨磊盯着发黑的天花板：要么妥协，学着欺骗远方的陌生人；要么暗中寻找渺茫的机会，逃出去。')],tip:'"杀猪盘"是先建立感情再诱导投资的套路。被迫参与诈骗同样违法，请尽量保存被胁迫的证据。'},
+{play:0},
+{c:'office',L:[N('第二天一早，哨声叫醒所有人。培训开始，讲师一字一句教他们怎么伪装身份。'),['讲师','先共情，再给甜头，慢慢放下对方的防备。对方犹豫，就继续画大饼。'],Y('屏幕对面，可能是辛苦攒钱的普通人……我恶心反胃。'),N('宿舍和工位到处都是告密者，一句话说错，就会招致灾祸。')],tip:'"先共情、再给甜头、再画大饼"是典型话术。遇到陌生人带你投资、转账，一律先停下来核实。'},
+{c:'dorm',L:[N('摆在杨磊面前，有三条可走的路。')],ch:[['表面顺从，博取信任，暗中等待时机',[N('代价是，他要亲手伤害远方无辜的人。')],()=>f.path='conform'],['与阿牛、倪曼宇秘密结盟，寻找集体出逃的机会',[N('只要中间任意一人害怕、叛变，所有人都会万劫不复。')],()=>f.path='ally'],['消极摆烂，拒绝参与诈骗',[N('结局看得见：克扣伙食、罚站，生存空间一点点被压缩。')],()=>f.path='passive']]},
+{play:1},
+{c:'office',L:[N('园区内部并不铁板一块。几位主管利益冲突，手下互相排挤、争抢业绩，暗流涌动。'),N('杨磊刻意表现得勤恳听话。龙哥看他"渐渐开窍"，允许他在部分办公区自由走动。'),['阿牛','最近戒备升级，有人尝试逃跑被抓回，巡逻频次翻了倍。']],tip:'组织内部的矛盾，可能成为突破口，但也伴随着风险，一切以保护自己为先。'},
+{play:2},
+{c:'room',L:[['龙哥','听说你总跟阿牛、倪曼宇凑在一起，聊些无关工作的东西。安分一点。'],N('杨磊后背冒出冷汗，强迫自己冷静，说只是互相交流话术。'),N('夜里，同工位的人低声劝他："认命或许是唯一活下去的办法。"同化的声音，时时刻刻在耳边回响。'),N('可拖下去，迟早会被揭发。行动，必须尽快。')]},
+{c:'dorm',L:[N('三人决定冒险接触那名叫老周的底层保安。阿牛出面，老周警惕不松口；第二次见面，阿牛许下承诺，出去后一定想办法报答。'),N('老周终于松口。约定在仓库旁一处监控盲区的杂物间交接，只给十几分钟，必须赶在凌晨信号检修时发出。'),N('可倪曼宇在搜集文件时被主管撞见，被限制了活动范围，只剩杨磊和阿牛能去。')],tip:'计划被打乱时，别慌。保留备用方案，不要把希望押在单一环节。'},
+{play:3},
+{c:'signal',L:[N('凌晨，信号屏蔽设备按惯例短暂停机。杂物间里，手机屏幕的微光映着三张紧绷的脸。'),N('杨磊双手发抖，把位置、园区情况、受困者处境一条一条敲进去。'),N('就在快要编辑完成时，外面传来密集的脚步声。')]},
+{c:'raid',L:[N('刺眼的手电光破门而入。龙哥带着数名安保站在门口。'),['龙哥','我警告过你，不要耍小聪明。'],N('手机被没收，三人被分开带走。告密的舍友，早已悄悄报了信。')]},
+{c:'room',L:[N('小黑屋里没有拷打，只有无休止的精神施压和威胁。龙哥一遍遍逼问：还有没有别的同伙？'),N('故事走到分叉路口，不同的选择，导向完全不同的结局。')],ch:()=>{const o=[];
+ if(inv.includes('tree')&&inv.includes('zhou'))o.push(['不崩溃——纸片早已藏进了树洞',0,()=>f.end=1]);
+ o.push(['向管理层低头，换取宽恕',0,()=>f.end=2]);
+ o.push(['沉默，不再提逃跑',0,()=>f.end=3]);
+ if(inv.length>=10)o.push(['把全部证据托付给老周，不出卖同伴',0,()=>f.end=4]);return o}},
+{end:1}];
+const ENDS={1:['远渡归乡 · 获救','杨磊早料到败露的风险，把同样的求救文本抄在纸片上，托老周藏进老树的树洞。老周良知压倒了恐惧，趁看守松懈寄出纸片。警方与领事保护部门收到举报，跨境协同行动。数日后，铁门被破开，高墙终于迎来外面的光。回国后，他们配合警方，指证电诈团伙。噩梦没有立刻消散，但他们活了下来。','落入境外危险环境，生命安全优先，悄悄留存位置、人员等证据，寻找一切机会向110、12308求助。'],
+2:['笼中同化 · 沉沦','反抗的代价压倒一切。杨磊低头，上交了一些无关紧要的情报换取宽恕，从此全身心投入诈骗，钻研话术，拼命冲业绩。他得到更好的住宿与特权，代价是良知一点点泯灭。阿牛依旧不肯妥协，倪曼宇再不敢提逃跑二字。牢笼没有毁掉他的身体，却把他变成了牢笼本身的一部分。','绝境中坚守本心极为艰难；参与诈骗同样触犯法律，即便身处胁迫，也要尽可能保留被胁迫的证据。'],
+3:['困守樊笼 · 陷落','所有求救渠道被掐断，图纸与情报被搜走销毁，逃跑的可能性彻底破灭。他们不再敢提起逃跑，只能日复一日熬着，被动等待不知何时才会到来的机会。围墙之外是自由，围墙之内是无尽煎熬。有些人，一辈子，都没能等到逃出去的那天。','一次失败不等于彻底绝望。只要活着，就依旧存在等待救援的机会，不要彻底放弃希望。'],
+4:['纸证留声 · 无名者','杨磊知道自己很难脱身。被带走之前，他把全部证据交到老周手上，恳求对方不计代价送出去。无论怎样逼问，他没有出卖阿牛与倪曼宇。证据最终流向外界，助警方捣毁整个电诈团伙，上百名受困者重获自由。杨磊没能亲眼等到那一天，但他的名字，留在了每一个被救出的人心里。','证据是打击电诈最重要的武器。条件允许，尽量留存文字、录音、位置信息，传递给官方渠道。']};
+const ENDBG={1:'dawn',2:'office',3:'gate',4:'tree'};
 /* ===== 全局状态 ===== */
-let mode='title',lv=0,P,NP=[],inv=[],caught=0,cam=0,fd={a:0,d:0},toast='',toastT=0,banner=0,need=0,T=0,
- dq=[],di=0,dtxt=0,dchoice=null,inCh=0,sel=0,dcb=null,isel=0,msel=0,endK='A',last=0;
-const SK='milu_save_v1';
-function save(){try{localStorage.setItem(SK,JSON.stringify({lv,x:P.x,inv,caught}))}catch(_){}}
-function hasSave(){try{return!!localStorage.getItem(SK)}catch(_){return 0}}
-function loadGame(){try{const s=JSON.parse(localStorage.getItem(SK));inv=s.inv;caught=s.caught;loadLevel(s.lv,s.x);mode='play';note('已读取存档')}catch(_){}}
+let mode='title',lv=0,P,NP=[],inv=[],caught=0,cam=0,fd={a:0,d:0},toast='',toastT=0,banner=0,need=0,T=0,bi=0,bg='',tsel=0,
+ dq=[],di=0,dtxt=0,dchoice=null,inCh=0,sel=0,dcb=null,isel=0,msel=0,endK=1,last=0,dust=Array.from({length:70},(_,i)=>[Math.random()*W,Math.random()*H,Math.random()*.5+.2]);
+const SK='milu_save_v2';
+function save(){try{localStorage.setItem(SK,JSON.stringify({bi,inv,caught,f}))}catch(_){}}
+const hasSave=()=>{try{return!!localStorage.getItem(SK)}catch(_){return 0}};
+function loadGame(){try{const s=JSON.parse(localStorage.getItem(SK));inv=s.inv;caught=s.caught;f=s.f||{};bi=s.bi;runBeat()}catch(_){newGame()}}
 const note=t=>{toast=t;toastT=2.5},fadeTo=cb=>fd={a:0,d:1,cb};
-function loadLevel(i,x){lv=i;P={x:x||60,y:440,vx:0,vy:0,coy:0,buf:0,f:1,s:'idle'};
- NP=LV[i].np.map(([a,b])=>({x:a,a,b,d:1,al:0}));banner=3.5;mode='play'}
-function newGame(){inv=[];caught=0;loadLevel(0,60);say([X('刷到一条招聘："境外高薪、包吃住、无需经验、月入三万。"'),X('这么好的事……会不会有问题？可是房租快到期了。')],
- '高薪 + 零门槛 + 急招 + 要求出境，是典型诈骗广告特征。',null,[['留下联系方式，了解一下',null],['觉得可疑，先关掉',()=>say([X('……可是下个月的房租怎么办。'),X('算了，只是问问，又不会损失什么。')],'有侥幸心理，正是骗子最想利用的。看到高薪广告，先核实再行动。')]])}
+function newGame(){inv=[];caught=0;f={};bi=0;runBeat()}
+function runBeat(){const b=B[bi];if(!b)return;save();
+ if(b.play!=null)return loadLevel(b.play);
+ if(b.end)return endGame(f.end||3);
+ bg=b.c;const ch=typeof b.ch=='function'?b.ch():b.ch;
+ say(b.L,b.tip,next,ch&&ch.map(o=>[o[0],()=>{o[2]&&o[2]();o[1]?say(o[1],o[3],next):next()}]))}
+function next(){bi++;runBeat()}
+function loadLevel(i){lv=i;bg='';P={x:80,y:GY-PH,vx:0,vy:0,coy:0,buf:0,f:1,s:'idle'};
+ NP=LV[i].np.map(([a,b])=>({x:a,a,b,d:1,al:0}));banner=3.5;mode='play';need=1}
 function endGame(k){endK=k;mode='end'}
-/* ===== 对话系统：A键 / 手柄A 继续，打字机效果 ===== */
+function start(i,cont){MODE=['kbm','pad','touch'][i];document.querySelectorAll('[data-t]').forEach(d=>d.style.display=MODE=='touch'?'flex':'none');
+ document.getElementById('rot').classList.add('on');try{document.documentElement.requestFullscreen().then(()=>screen.orientation.lock('landscape')).catch(()=>{})}catch(_){}
+ amb();cont?loadGame():newGame()}
+/* ===== 对话：A / 手柄A / 点屏幕 继续，打字机 ===== */
 function say(lines,tip,cb,ch){dq=lines.map(l=>({s:l[0],t:l[1]}));if(tip)dq.push({s:'💡 反诈小贴士',t:tip,tip:1});dcb=cb;dchoice=ch||null;inCh=0;di=0;dtxt=0;mode='dlg'}
-function endDlg(f){mode='play';need=1;f&&f()}
+function endDlg(f_){mode='play';need=1;f_&&f_()}
 function dlg(dt,e){
  if(inCh){if(e.up)sel=(sel+dchoice.length-1)%dchoice.length;if(e.dn)sel=(sel+1)%dchoice.length;
   if(e.adv||e.i){const p=dchoice[sel];inCh=0;dchoice=null;endDlg(p[1])}return}
- const d=dq[di];dtxt+=dt*40;
+ const d=dq[di];dtxt+=dt*45;
  if(e.adv){if(dtxt<d.t.length)dtxt=d.t.length;else if(di<dq.length-1){di++;dtxt=0}else if(dchoice){inCh=1;sel=0}else endDlg(dcb)}}
-/* ===== 主逻辑 ===== */
+/* ===== 主循环 ===== */
 function step(dt,a,e){
  T+=dt;toastT-=dt;banner-=dt;
  if(fd.d==1){fd.a+=dt*2.5;if(fd.a>=1){fd.a=1;fd.d=-1;fd.cb&&fd.cb()}return}
  if(fd.d==-1){fd.a-=dt*2.5;if(fd.a<=0){fd.a=0;fd.d=0}}
- if(mode=='title'){if(e.adv)newGame();else if(e.i&&hasSave())loadGame();return}
- if(mode=='end'){if(e.adv||e.i)mode='title';return}
+ if(mode=='title'){if(e.l)tsel=(tsel+2)%3;if(e.r)tsel=(tsel+1)%3;
+  if(ptr){for(let i=0;i<3;i++){const x=190+i*300;if(ptr.x>x&&ptr.x<x+260&&ptr.y>330&&ptr.y<540){tsel=i;e.ok=1}}
+   if(hasSave()&&ptr.y>590&&ptr.y<670&&ptr.x>440&&ptr.x<840)e.c=1}
+  if(e.ok)start(tsel);else if(e.c&&hasSave())start(tsel,1);return}
+ if(mode=='end'){if(e.adv||e.i||e.ok)mode='title';return}
  if(mode=='dlg')return dlg(dt,e);
  if(mode=='inv'){if(e.inv||e.pause||e.i)mode='play';if(e.up)isel=Math.max(0,isel-1);if(e.dn)isel=Math.min(inv.length-1,isel+1);return}
  if(mode=='menu'){if(e.pause)mode='play';if(e.up)msel=(msel+3)%4;if(e.dn)msel=(msel+1)%4;
-  if(e.adv||e.i){if(msel==0)mode='play';else if(msel==1){save();note('已手动存档');mode='play'}else if(msel==2){if(hasSave())loadGame()}else endGame('C')}return}
+  if(e.adv||e.i){if(msel==0)mode='play';else if(msel==1){save();note('已手动存档');mode='play'}else if(msel==2){if(hasSave())loadGame()}else mode='title'}return}
  if(e.inv){mode='inv';isel=0;return}if(e.pause){mode='menu';msel=0;return}
  play(dt,a,e)}
-function inShadow(){return LV[lv].sh.some(([x,w])=>P.x+11>x&&P.x+11<x+w)&&P.vy==0}
+const inShadow=()=>LV[lv].sh.some(([x,w])=>P.x+12>x&&P.x+12<x+w)&&P.vy==0;
 function play(dt,a,e){
  const L=LV[lv];
  if(need){if(!a.l&&!a.j&&!a.r)need=0;a={...a,l:0,r:0,j:0,i:0};e={...e,j:0,i:0}}
- const t=(a.r?1:0)-(a.l?1:0);P.vx+=(t*190-P.vx)*Math.min(1,dt*12);if(t)P.f=t;
+ const t=(a.r?1:0)-(a.l?1:0);P.vx+=(t*230-P.vx)*Math.min(1,dt*12);if(t)P.f=t;
  if(e.j)P.buf=.1;P.buf-=dt;P.coy-=dt;
- if(P.buf>0&&P.coy>0){P.vy=-640;P.buf=0;P.coy=0}
- if(!a.j&&P.vy<-220)P.vy=-220;
- P.vy+=1800*dt;P.x=cl(P.x+P.vx*dt,0,L.w-22);
- const pb=P.y+40;P.y+=P.vy*dt;let on=0;
- if(P.vy>=0)for(const q of [[-100,480,L.w+200],...L.pl])if(pb<=q[1]+2&&P.y+40>=q[1]&&P.x+22>q[0]&&P.x<q[0]+q[2]){P.y=q[1]-40;P.vy=0;on=1;P.coy=.1}
- P.s=!on?(P.vy<0?'jump':'fall'):Math.abs(P.vx)>15?'walk':'idle'; // 状态机 idle/walk/jump/fall
- /* 巡逻NPC：视野探测，被发现只触发剧情 */
- const sh=inShadow();let hit=0;
- for(const n of NP){n.x+=n.d*60*dt;if(n.x>n.b)n.d=-1;if(n.x<n.a)n.d=1;
-  const dx=P.x+11-n.x,see=Math.sign(dx)==n.d&&Math.abs(dx)<(sh?100:240)&&Math.abs(P.y+20-460)<55;
-  n.al=cl(n.al+(see?(sh?10:34):-14)*dt,0,100);n.see=see;if(n.al>=100)hit=1}
+ if(P.buf>0&&P.coy>0){P.vy=-780;P.buf=0;P.coy=0}
+ if(!a.j&&P.vy<-260)P.vy=-260;
+ P.vy+=2100*dt;P.x=cl(P.x+P.vx*dt,0,L.w-24);
+ const pb=P.y+PH;P.y+=P.vy*dt;let on=0;
+ if(P.vy>=0)for(const q of [[-100,GY,L.w+200],...L.pl])if(pb<=q[1]+2&&P.y+PH>=q[1]&&P.x+24>q[0]&&P.x<q[0]+q[2]){P.y=q[1]-PH;P.vy=0;on=1;P.coy=.1}
+ P.s=!on?(P.vy<0?'jump':'fall'):Math.abs(P.vx)>15?'walk':'idle';
+ const sh=inShadow(),mul=f.path=='conform'?.8:f.path=='passive'?1.25:1;let hit=0;
+ for(const n of NP){n.x+=n.d*70*dt;if(n.x>n.b)n.d=-1;if(n.x<n.a)n.d=1;
+  const dx=P.x+12-n.x,see=Math.sign(dx)==n.d&&Math.abs(dx)<(sh?120:290)&&Math.abs(P.y+PH/2-(GY-32))<62;
+  n.al=cl(n.al+(see?(sh?10:34)*mul:-14)*dt,0,100);if(n.al>=100)hit=1}
  if(hit)return caughtEv();
- /* 交互 */
- const cx=P.x+11;let tg=null;
- for(const it of L.it)if(!inv.includes(it.id)&&Math.abs(cx-it.x)<46&&Math.abs(P.y+40-(it.y||480))<30)tg=it;
- if(L.term&&Math.abs(cx-L.term)<56)tg={term:1};
+ const cx=P.x+12;let tg=null;
+ for(const it of L.it)if(!inv.includes(it.id)&&Math.abs(cx-it.x)<54&&Math.abs(P.y+PH-(it.y||GY))<34)tg=it;
+ if(L.term&&Math.abs(cx-L.term)<64)tg={term:1};
  P.tg=tg;
- if(e.i&&tg){if(tg.term)return sendHelp();
-  inv.push(tg.id);note('获得线索：'+tg.n);save();
-  say(tg.L,tg.t,null,tg.c?[['继续寻找出路',null],['也许认命更轻松……',()=>endGame('C')]]:null)}
- if(P.x>L.w-40&&lv<4){if(L.it.some(i=>inv.includes(i.id)))fadeTo(()=>{loadLevel(lv+1,50);save();note('自动存档')});
-  else{note('这里还有线索没找到，先观察周围');P.x=L.w-45;P.vx=0}}}
-function caughtEv(){caught++;NP.forEach(n=>n.al=0);
- say([['保安','小林，你需要跟我们谈一谈。'],X('只是被"请"回去谈话，没有人碰我——可我知道，我已经出不去了。')],
-  '被"约谈"、被限制行动同样是人身自由受限，应尽早保留证据并向官方渠道求助。',
-  ()=>{if(caught>=3)endGame('B');else fadeTo(()=>loadLevel(lv,60))})}
-function sendHelp(){
- if(caught>=3)return endGame('B');
- if(inv.length<8)return say([X('信息还不够完整，说不清地点和经过……'),X('再回头找找线索吧。')],'求助信息越具体（地点、人物、经过），越容易被官方渠道采信。');
- say([X('信号窗口开启。我把位置、经过、证据一条条发了出去。'),X('求你们……一定要收到。')],'发送求助时，请同时拨打报警电话或联系使领馆，多渠道确认。',()=>endGame(inv.length>=ALL?'D':'A'))}
-/* ===== 绘制 ===== */
-function T_(t,x,y,s,c,al){g.font=s+'px '+FN;g.fillStyle=c;g.textAlign=al||'left';g.fillText(t,x,y)}
-function wrap(t,mw){const o=[];let s='';for(const c of t){if(g.measureText(s+c).width>mw){o.push(s);s=c}else s+=c}o.push(s);return o}
-function draw(){
- g.clearRect(0,0,W,H);
- if(mode=='title')return title();
- if(mode=='end')return endScr();
- world();hud();
- if(mode=='dlg')dlgBox();if(mode=='inv')invPanel();if(mode=='menu')menu();
- if(fd.a>0){g.fillStyle='rgba(0,0,0,'+fd.a+')';g.fillRect(0,0,W,H)}}
+ if(e.i&&tg){
+  if(tg.term){if(inv.includes('zhou')&&inv.includes('copy')&&inv.includes('tree'))return fadeTo(next);return say([Y('还没准备好——老周、纸条、树洞，一样都不能少。')],'行动前把每一环都确认好，仓促行动只会让证据和人都暴露。')}
+  inv.push(tg.id);note('获得线索：'+tg.n);save();say(tg.L,tg.t)}
+ if(P.x>L.w-40&&lv<3){if(L.it.filter(i=>inv.includes(i.id)).length>=L.req)fadeTo(next);else{note('还有线索没找到，再看看四周');P.x=L.w-45;P.vx=0}}}
+function caughtEv(){caught++;NP.forEach(n=>n.al=0);bg='';
+ say([['保安','杨磊，你需要跟我们谈一谈。'],N('没有人动他一根手指，可他被"请"回去，一遍遍被盘问，直到疲惫不堪。')],'被"约谈"、被限制行动，同样是人身自由受限。保持冷静，不主动暴露关键信息。',()=>{if(caught>=3){f.end=3;bi=ENDI;runBeat()}else fadeTo(()=>loadLevel(lv))})}
+/* ===== 过场动画场景 ===== */
+function cine(k,t){
+ g.save();const z=1+t%60*.003;g.translate(W/2,H/2);g.scale(z,z);g.translate(-W/2,-H/2);
+ const grd=(a,b)=>{const q=g.createLinearGradient(0,0,0,H);q.addColorStop(0,a);q.addColorStop(1,b);g.fillStyle=q;g.fillRect(0,0,W,H)};
+ const tri=(x1,y1,x2,y2,x3,y3,c)=>{g.fillStyle=c;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.lineTo(x3,y3);g.fill()};
+ g.globalCompositeOperation='source-over';
+ if(k=='chat'){grd('#0a0e14','#05070a');for(let i=0;i<16;i++)R(i*90-20,330-(i*37%120),70,400,'rgba(20,28,38,.7)');
+  R(470,60,340,600,'#10151c');g.strokeStyle='#2b3744';g.lineWidth=4;g.strokeRect(470,60,340,600);R(486,90,308,540,'#0b1117');glow(640,360,460,'rgba(90,160,255,A)',.22);
+  for(let i=0;i<7;i++){const al=cl(t*1.1-i*.7,0,1),r=i%2;g.globalAlpha=al;g.fillStyle=r?'#2a6fdb':'#2a333d';g.beginPath();g.roundRect(r?640:500,120+i*68,120+(i*57%110),44,14);g.fill()}g.globalAlpha=1}
+ else if(k=='train'){grd('#0b1220','#1e2b3a');g.fillStyle='#0a0f16';g.beginPath();g.moveTo(0,520);for(let x=0;x<=W;x+=40)g.lineTo(x,400+Math.sin(x*.01+t*.1)*60+Math.sin(x*.027)*30);g.lineTo(W,H);g.lineTo(0,H);g.fill();
+  for(let i=0;i<9;i++){const x=((i*180-t*420)%1620+1620)%1620-150;R(x,300,8,320,'#0c1016');R(x-40,320,90,5,'#0c1016')}
+  R(0,560,W,160,'#06090d');for(let i=0;i<8;i++){const x=i*170+Math.sin(t*20)*2;R(x,470,150,90,'#141a21');R(x+20,490,110,40,'rgba(255,205,120,.5)')}glow(640,500,500,'rgba(255,190,100,A)',.1)}
+ else if(k=='road'){grd('#03060a','#0a1210');for(let i=0;i<26;i++){const x=((i*130-t*340)%1500+1500)%1500-110;tri(x,620,x+70,250+(i%4)*60,x+140,620,'#08100d')}
+  const by=520+Math.sin(t*6)*5;tri(160,by,1100,by-200,1100,by+120,'rgba(255,240,190,.1)');glow(160,by,180,'rgba(255,240,190,A)',.55);R(0,620,W,100,'#050709')}
+ else if(k=='gate'||k=='raid'&&0){grd('#1a2530','#0b1016');for(let i=0;i<20;i++)R(i*70-30,380,50,340,'#0e141a');R(0,360,W,12,'#0a0e12');
+  g.strokeStyle='#223';g.lineWidth=3;g.beginPath();for(let x=0;x<=W;x+=24){g.lineTo(x,330+(x/24%2)*26)}g.stroke();
+  R(430,170,420,450,'#10171e');R(630,170,20,450,'#06090c');for(let i=0;i<6;i++)R(450,200+i*68,170,6,'#1b242d');
+  for(const sx of [140,1140]){R(sx-18,200,36,320,'#0b1015');R(sx-44,170,88,48,'#121a21');const a=Math.sin(t*.8+sx)*.6;g.globalCompositeOperation='lighter';tri(sx,194,sx+Math.cos(a+1.4)*700-120,194+Math.sin(a+1.4)*700,sx+Math.cos(a+1.4)*700+120,194+Math.sin(a+1.4)*700,'rgba(255,240,200,.1)');g.globalCompositeOperation='source-over'}}
+ else if(k=='dorm'){grd('#0d141a','#05080b');tri(900,0,1280,0,1280,520,'rgba(150,180,220,.1)');R(880,90,200,260,'#0a1014');R(886,96,188,248,'rgba(120,150,190,.25)');
+  for(const bx of [120,520,880]){R(bx,230,12,400,'#161d24');R(bx+230,230,12,400,'#161d24');R(bx,330,242,10,'#161d24');R(bx,470,242,10,'#161d24');g.fillStyle='#0e141a';g.beginPath();g.roundRect(bx+30,430,170,40,12);g.fill()}R(0,630,W,90,'#06090c')}
+ else if(k=='office'){grd('#0b1316','#05080a');R(380,40,520,60,'#5a0f10');T_('业绩为王',640,86,40,'#e8d0c8','center');
+  for(let r=0;r<3;r++)for(let c=0;c<9;c++){const fl=.5+.3*Math.sin(t*3+r*5+c*2);R(90+c*125,250+r*110,95,62,'rgba(60,140,210,'+fl+')');R(90+c*125,316+r*110,95,8,'#10181f')}
+  glow(640,420,700,'rgba(60,140,210,A)',.12);g.strokeStyle='#1d252c';g.lineWidth=5;for(let i=0;i<7;i++){g.beginPath();g.moveTo(1130+i*18,500);g.lineTo(1130+i*18,660);g.stroke()}g.strokeRect(1128,500,110,6)}
+ else if(k=='room'){grd('#020304','#000');const lx=640+Math.sin(t*1.3)*40;g.globalCompositeOperation='lighter';tri(lx,120,lx-230,640,lx+230,640,'rgba(255,230,160,.13)');g.globalCompositeOperation='source-over';glow(lx,130,160,'rgba(255,230,160,A)',.4);R(lx-2,0,4,120,'#222');R(580,500,120,10,'#2a2018');R(595,510,8,100,'#2a2018');R(680,510,8,100,'#2a2018');R(560,430,12,90,'#2a2018')}
+ else if(k=='signal'){grd('#07090c','#030405');for(let i=0;i<8;i++)R(80+i*140,420-(i%3)*70,110,240+(i%3)*70,'#0c1116');
+  glow(640,430,300,'rgba(120,190,255,A)',.35);R(580,380,120,150,'#0a0f14');R(588,390,104,128,'rgba(120,190,255,.55)');R(520,600,240,10,'#162029');R(520,600,240*cl(t*.12,0,.9),10,'#5af');
+  const d=cl((t%14)/14,0,1);g.globalCompositeOperation='lighter';tri(1280,120,1280-900*d,700,1280,800,'rgba(255,240,200,'+(.05+d*.12)+')');g.globalCompositeOperation='source-over'}
+ else if(k=='raid'){grd('#06080b','#020304');g.globalCompositeOperation='lighter';tri(1280,60,300,600,700,760,'rgba(255,245,210,.28)');tri(1280,200,420,700,900,780,'rgba(255,245,210,.18)');g.globalCompositeOperation='source-over';
+  for(let i=0;i<4;i++)person(980+i*70,640,-1,PAL.guard,t,0);person(1010,640,-1,PAL.long,t,0)}
+ else if(k=='dawn'){grd('#1d3a4a','#e8a35a');glow(640,420,520,'rgba(255,220,150,A)',.7);g.fillStyle='#0a0f14';g.beginPath();g.moveTo(0,H);g.lineTo(0,540);for(let x=0;x<=W;x+=40)g.lineTo(x,520+Math.sin(x*.01)*30);g.lineTo(W,H);g.fill();
+  g.save();g.translate(430,420);g.rotate(-.5);R(0,0,12,260,'#161c22');g.restore();g.save();g.translate(850,420);g.rotate(.5);R(-12,0,12,260,'#161c22');g.restore();
+  for(let i=0;i<5;i++)T_('︿',200+i*180+Math.sin(t+i)*30,160+Math.cos(t*.8+i)*20,28,'#223')}
+ else if(k=='tree'){grd('#060b10','#03060a');glow(640,380,500,'rgba(255,230,170,A)',.12);R(600,230,90,440,'#0c1014');g.fillStyle='#0a0e12';g.beginPath();g.arc(645,200,230,0,7);g.fill();R(618,430,44,90,'#000');glow(640,480,70,'rgba(255,235,180,A)',.8);R(628,470,24,34,'#e8dcc0');g.strokeStyle='#05080b';g.lineWidth=3;for(let i=0;i<8;i++){g.beginPath();g.moveTo(i*180,620);g.lineTo(i*180+20,560);g.stroke()}}
+ else grd('#06090c','#020304');
+ g.restore();R(0,0,W,70,'#000');R(0,H-70,W,70,'#000')}
+/* ===== 游戏世界绘制 ===== */
 function world(){
- const L=LV[lv];cam=cl(P.x-W/2+11,0,L.w-W);
- const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,L.col);gr.addColorStop(1,'#07090b');g.fillStyle=gr;g.fillRect(0,0,W,H);
- g.fillStyle='rgba(0,0,0,.25)';for(let i=0;i<30;i++){const x=((i*230-cam*.4)%1260+1260)%1260-150;g.fillRect(x,180+(i%3)*30,120,300)}
- g.fillStyle='#0d1114';g.fillRect(0,480,W,60);g.save();g.translate(-cam,0);
- g.fillStyle='#0d1114';g.fillRect(0,480,L.w,60);g.fillStyle='#2a3138';L.pl.forEach(q=>g.fillRect(q[0],q[1],q[2],10));
- L.sh.forEach(([x,w])=>{g.fillStyle='rgba(0,0,0,.7)';g.fillRect(x,400,w,80);T_('阴影 · 可躲藏',x+w/2,445,12,'#566','center')});
- L.it.forEach(i=>{if(inv.includes(i.id))return;const y=(i.y||480)-20,p=.5+.5*Math.sin(T*3);
-  g.fillStyle='rgba(255,215,120,'+(.15+.2*p)+')';g.beginPath();g.arc(i.x,y,18+4*p,0,7);g.fill();g.fillStyle='#d9c89a';g.fillRect(i.x-7,y-9,14,18)});
- if(L.term){g.fillStyle='#223';g.fillRect(L.term-18,425,36,55);g.fillStyle='#5af';g.fillRect(L.term-13,432,26,18);T_('求救终端',L.term,415,13,'#9cf','center')}
- if(lv<4)T_('→ 下一区域',L.w-70,440,14,'#789','center');
- NP.forEach(n=>{const k=n.d,d=sh_dist(),c=n.al/100;
-  g.fillStyle='rgba(255,'+(230-150*c|0)+',110,'+(.1+.2*c)+')';g.beginPath();g.moveTo(n.x,445);g.lineTo(n.x+k*240,405);g.lineTo(n.x+k*240,495);g.fill();
-  g.fillStyle='#46525c';g.fillRect(n.x-11,440,22,40);g.fillStyle='#8a8f94';g.fillRect(n.x-7,430,14,12);
-  if(n.al>5)T_('?',n.x,422,18,'#fc6','center')});
- const b=P.s=='walk'?Math.sin(T*14)*2:0;g.fillStyle='#c8b48a';g.fillRect(P.x,P.y+b,22,40);g.fillStyle='#e0cfa8';g.fillRect(P.x+5,P.y-9+b,12,11);
- g.fillStyle='#222';g.fillRect(P.x+(P.f>0?12:6),P.y-5+b,3,3);
- if(P.tg)T_('按 E / 手柄B：'+(P.tg.term?'发送求救信息':'调查 '+P.tg.n),P.x+11,P.y-18,15,'#fff','center');
+ const L=LV[lv],k=L.k;cam=cl(P.x-W/2+12,0,L.w-W);
+ const SC=[['#2a3846','#0d1218'],['#1f2e36','#0a1014'],['#232c2f','#0b0f10'],['#0c121c','#05070b']][k],gr=g.createLinearGradient(0,0,0,GY);gr.addColorStop(0,SC[0]);gr.addColorStop(1,SC[1]);g.fillStyle=gr;g.fillRect(0,0,W,H);
+ for(let i=0;i<26;i++){const x=((i*190-cam*.15)%4940+4940)%4940-200,h=110+(i*47%170);R(x,GY-h-150,130,h+150,'rgba(7,11,15,.85)');for(let j=0;j<4;j++)if((i*7+j*3)%5<2)R(x+18+j*28,GY-h-120+(i%3)*34,11,15,'rgba(255,200,120,.3)')}
+ const m=cam*.5;g.strokeStyle='rgba(18,24,28,.95)';g.lineWidth=3;for(let x=-(m%64);x<W;x+=64){g.beginPath();g.moveTo(x,GY-190);g.lineTo(x,GY);g.stroke()}
+ R(0,GY-190,W,4,'#161c20');g.beginPath();for(let x=-(m%24);x<W;x+=24)g.lineTo(x,GY-212+((x+m)/24%2)*14);g.stroke();
+ const tx=((520-cam*.5)%1900+1900)%1900-200;R(tx-16,GY-380,32,380,'#0a0f13');R(tx-46,GY-420,92,50,'#10171d');const ang=Math.sin(T*.7)*.55+1.57;
+ g.globalCompositeOperation='lighter';g.fillStyle='rgba(255,240,200,.1)';g.beginPath();g.moveTo(tx,GY-396);g.lineTo(tx+Math.cos(ang-.12)*900,GY-396+Math.sin(ang-.12)*900);g.lineTo(tx+Math.cos(ang+.12)*900,GY-396+Math.sin(ang+.12)*900);g.fill();g.globalCompositeOperation='source-over';
+ const fg=g.createLinearGradient(0,GY,0,H);fg.addColorStop(0,'#141a1f');fg.addColorStop(1,'#07090b');g.fillStyle=fg;g.fillRect(0,GY,W,H-GY);R(0,GY,W,3,'#2a343c');
+ g.save();g.translate(-cam,0);
+ for(let x=0;x<L.w;x+=480){const lx=x+200;R(lx-3,GY-300,6,300,'#0c1114');R(lx-30,GY-306,60,8,'#0c1114');g.globalCompositeOperation='lighter';glow(lx,GY-296,260,'rgba(255,200,120,A)',.4);glow(lx,GY+20,240,'rgba(255,200,120,A)',.12);g.globalCompositeOperation='source-over'}
+ L.pl.forEach(q=>{R(q[0],q[1],q[2],GY-q[1]>0?14:14,'#2d373f');R(q[0],q[1],q[2],3,'#556270');for(let x=q[0]+20;x<q[0]+q[2];x+=60)R(x,q[1]+14,6,Math.min(80,GY-q[1]-14),'#151b20')});
+ L.sh.forEach(([x,w])=>{R(x,GY-110,w,110,'rgba(0,0,0,.78)');R(x,GY-110,w,4,'rgba(80,95,110,.4)');T_('阴影 · 可躲藏',x+w/2,GY-52,15,'#566','center')});
+ L.it.forEach(i=>{const d=inv.includes(i.id),y=i.y||GY;
+  if(i.npc){person(i.x,y,-1,PAL[i.npc],T,0);if(!d)T_('!',i.x,y-76+Math.sin(T*4)*3,26,'#ffd98a','center')}
+  else if(!d){const p=.5+.5*Math.sin(T*3);g.globalCompositeOperation='lighter';glow(i.x,y-24,60,'rgba(255,215,120,A)',.25+.3*p);g.globalCompositeOperation='source-over';R(i.x-9,y-34,18,24,'#d9c89a')}});
+ if(L.term){R(L.term-24,GY-86,48,86,'#1a2230');R(L.term-18,GY-78,36,26,'#5af');T_('杂物间',L.term,GY-98,16,'#9cf','center')}
+ if(lv<3)T_('→ 下一区域',L.w-90,GY-60,18,'#789','center');
+ NP.forEach(n=>{const c=n.al/100,hx=n.x,hy=GY-48;
+  const q=g.createRadialGradient(hx,hy,10,hx,hy,300);q.addColorStop(0,'rgba(255,'+(235-140*c|0)+',130,'+(.35+.2*c)+')');q.addColorStop(1,'rgba(255,230,140,0)');g.fillStyle=q;g.beginPath();g.moveTo(hx,hy);g.lineTo(hx+n.d*300,hy-80);g.lineTo(hx+n.d*300,hy+80);g.fill();
+  person(n.x,GY,n.d,PAL.guard,T,1);if(n.al>5)T_('?',n.x,GY-82,26,'#fc6','center')});
+ person(P.x+12,P.y+PH,P.f,PAL.me,T,P.s=='walk');
+ if(P.tg)T_((MODE=='pad'?'Ⓑ':MODE=='touch'?'点「调查」':'E')+'：'+(P.tg.term?'进入杂物间':P.tg.npc?'交谈 '+P.tg.n:'调查 '+P.tg.n),P.x+12,P.y-24,20,'#fff','center');
  g.restore();
- const v=g.createRadialGradient(W/2,H/2,200,W/2,H/2,620);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.72)');g.fillStyle=v;g.fillRect(0,0,W,H)}
-const sh_dist=()=>0;
+ for(let i=0;i<4;i++){const x=((i*760-cam*1.4)%3040+3040)%3040-300;R(x,0,56,H,'rgba(0,0,0,.88)')}
+ g.globalCompositeOperation='lighter';for(const d of dust){d[0]=(d[0]-d[2]*.4+W)%W;d[1]=(d[1]+Math.sin(T+d[0])*.2+H)%H;R(d[0],d[1],2,2,'rgba(255,230,190,.35)')}g.globalCompositeOperation='source-over';
+ g.fillStyle=g.createLinearGradient(0,GY-130,0,GY+30);g.fillStyle='rgba(120,140,150,'+(.05+.03*Math.sin(T*.5))+')';g.fillRect(0,GY-90,W,110);
+ const v=g.createRadialGradient(W/2,H/2,260,W/2,H/2,820);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.78)');g.fillStyle=v;g.fillRect(0,0,W,H)}
 function hud(){
- if(banner>0){g.globalAlpha=Math.min(1,banner);T_(LV[lv].n,W/2,90,34,'#e8e0c8','center');g.globalAlpha=1}
- const mx=Math.max(0,...NP.map(n=>n.al));g.fillStyle='rgba(0,0,0,.5)';g.fillRect(W-180,16,160,12);g.fillStyle=mx>60?'#e96':'#cb6';g.fillRect(W-180,16,1.6*mx,12);T_('警觉',W-186,27,13,'#aab','right');
- T_('线索 '+inv.length+'/'+ALL+'  ·  被发现 '+caught+'/3',20,30,16,'#cdd');
- if(toastT>0)T_(toast,W/2,150,20,'#ffd98a','center');
- if(T<14)T_('A/D 移动 · W 跳 · E 调查 · I 背包 · Esc 菜单　|　手柄：摇杆/十字键 · A 跳 · B 调查 · Y 背包 · Start 菜单',20,H-14,13,'#889')}
+ if(banner>0){g.globalAlpha=Math.min(1,banner);T_(LV[lv].n,W/2,130,50,'#e8e0c8','center');g.globalAlpha=1}
+ const mx=Math.max(0,...NP.map(n=>n.al));R(W-260,24,220,14,'rgba(0,0,0,.5)');R(W-260,24,2.2*mx,14,mx>60?'#e96':'#cb6');T_('警觉',W-272,37,16,'#aab','right');
+ T_('线索 '+inv.length+'/'+ALL+'　被发现 '+caught+'/3',28,44,20,'#cdd');
+ if(toastT>0)T_(toast,W/2,200,26,'#ffd98a','center');
+ if(T<16)T_(MODE=='kbm'?'A/D 移动 · W 跳 · E 调查 · I 背包 · Esc 菜单':MODE=='pad'?'摇杆/十字键 移动 · A 跳 · B 调查 · Y 背包 · Start 菜单':'使用屏幕按钮操作',28,H-22,17,'#889')}
 function dlgBox(){
- const d=dq[di],tip=d.tip;g.fillStyle=tip?'rgba(40,32,10,.94)':'rgba(8,10,14,.93)';g.fillRect(40,350,880,170);g.strokeStyle=tip?'#d4a93a':'#4a5560';g.lineWidth=2;g.strokeRect(40,350,880,170);
- T_(d.s,64,386,20,tip?'#f0c850':'#9fd0e8');
- g.font='22px '+FN;g.fillStyle='#eee';wrap(d.t.slice(0,dtxt|0),820).forEach((l,i)=>g.fillText(l,64,424+i*32));
- if(inCh){g.fillStyle='rgba(8,10,14,.97)';g.fillRect(40,350,880,170);g.strokeStyle='#4a5560';g.strokeRect(40,350,880,170);
-  dchoice.forEach((o,i)=>T_((i==sel?'▶ ':'　')+o[0],80,410+i*44,24,i==sel?'#ffd98a':'#aab'));T_('W/S 或 摇杆 选择 · A 确认',900,506,14,'#889','right')}
- else if(dtxt>=d.t.length)T_('A / 手柄A / 点击 继续 ▼',900,506,15,'#9ab','right')}
-function invPanel(){g.fillStyle='rgba(6,8,10,.95)';g.fillRect(100,50,760,440);g.strokeStyle='#4a5560';g.strokeRect(100,50,760,440);
- T_('背包 · 线索笔记（'+inv.length+'/'+ALL+'）　I / Y 关闭',124,86,20,'#cde');
- if(!inv.length)return T_('尚未收集任何线索',480,270,20,'#778','center');
- inv.forEach((id,i)=>T_((i==isel?'▶ ':'　')+ITEM[id].n,124,124+i*30,18,i==isel?'#ffd98a':'#9ab'));
- const it=ITEM[inv[isel]];g.font='17px '+FN;g.fillStyle='#ddd';let y=130;
- it.L.forEach(l=>wrap(l[1],440).forEach(s=>{g.fillText(s,380,y);y+=26}));y+=14;g.fillStyle='#f0c850';wrap('💡 '+it.t,440).forEach(s=>{g.fillText(s,380,y);y+=26})}
-function menu(){g.fillStyle='rgba(0,0,0,.75)';g.fillRect(0,0,W,H);
- ['继续游戏','保存存档','读取存档','放弃（结局C）'].forEach((t,i)=>T_((i==msel?'▶ ':'　')+t,W/2,200+i*50,28,i==msel?'#ffd98a':'#aab','center'))}
-function title(){g.fillStyle='#0b1014';g.fillRect(0,0,W,H);T_('迷途',W/2,230,110,'#d8d0b8','center');
- T_('反诈教育互动叙事 · 无暴力内容',W/2,280,20,'#789','center');
- T_('按 A / 手柄A / 点击 开始新游戏',W/2,380,24,'#ffd98a','center');
- if(hasSave())T_('按 E / 手柄B 继续存档',W/2,420,20,'#9ab','center');
- T_('键盘+手柄可混用 · 手机请横屏',W/2,500,15,'#567','center')}
-function endScr(){const e=ENDS[endK];g.fillStyle='#07090c';g.fillRect(0,0,W,H);T_('结局 '+endK+'　'+e[0],W/2,120,40,'#e8e0c8','center');
- g.font='22px '+FN;g.fillStyle='#ccd';wrap(e[1],760).forEach((l,i)=>g.fillText(l,100,200+i*34));
- g.fillStyle='#f0c850';wrap('💡 '+e[2],760).forEach((l,i)=>g.fillText(l,100,320+i*32));
- T_('线索 '+inv.length+'/'+ALL+' · 被发现 '+caught+' 次　　按 A / 手柄A 返回标题',W/2,480,16,'#789','center')}
-function frame(ts){const dt=Math.min(.033,(ts-last)/1e3||0);last=ts;const[a,e]=poll();step(dt,a,e);draw();requestAnimationFrame(frame)}
-requestAnimationFrame(frame);
+ const d=dq[di],tip=d.tip,by=H-260;const gr=g.createLinearGradient(0,by-60,0,H);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(.3,'rgba(4,6,9,.93)');gr.addColorStop(1,'rgba(4,6,9,.98)');g.fillStyle=gr;g.fillRect(0,by-60,W,320);
+ if(tip){R(110,by+16,W-220,206,'rgba(60,45,10,.88)');g.strokeStyle='#d4a93a';g.lineWidth=2;g.strokeRect(110,by+16,W-220,206)}
+ if(d.s)T_(d.s,150,by+60,28,tip?'#f0c850':'#9fd0e8');
+ g.font='28px '+FN;g.fillStyle=d.s?'#eee':'#cdd';g.textAlign='left';wrap(d.t.slice(0,dtxt|0),W-300).forEach((l,i)=>g.fillText(l,150,by+104+i*40));
+ if(inCh){g.fillStyle='rgba(4,6,9,.98)';g.fillRect(0,by-60,W,320);dchoice.forEach((o,i)=>T_((i==sel?'▶ ':'　')+o[0],150,by+34+i*52,28,i==sel?'#ffd98a':'#aab'));T_(MODE=='kbm'?'W/S 选择 · A 确认':MODE=='pad'?'摇杆上下选择 · A 确认':'点 ◀▶ 选择，点屏幕确认',W-60,H-28,18,'#889','right')}
+ else if(dtxt>=d.t.length)T_(MODE=='kbm'?'按 A 继续 ▼':MODE=='pad'?'按 A 继续 ▼':'点屏幕继续 ▼',W-60,H-28,19,'#9ab','right')}
+function invPanel(){R(160,70,960,580,'rgba(6,8,10,.96)');g.strokeStyle='#4a5560';g.strokeRect(160,70,960,580);
+ T_('背包 · 线索笔记（'+inv.length+'/'+ALL+'）',190,116,26,'#cde');if(!inv.length)return T_('尚未收集任何线索',640,360,26,'#778','center');
+ inv.forEach((id,i)=>T_((i==isel?'▶ ':'　')+ITEM[id].n,190,160+i*34,22,i==isel?'#ffd98a':'#9ab'));
+ const it=ITEM[inv[isel]];g.font='22px '+FN;g.fillStyle='#ddd';let y=170;it.L.forEach(l=>wrap(l[1],560).forEach(s=>{g.fillText(s,500,y);y+=32}));y+=16;g.fillStyle='#f0c850';wrap('💡 '+it.t,560).forEach(s=>{g.fillText(s,500,y);y+=32})}
+function menu(){R(0,0,W,H,'rgba(0,0,0,.78)');['继续游戏','保存存档','读取存档','返回标题'].forEach((t,i)=>T_((i==msel?'▶ ':'　')+t,W/2,260+i*66,36,i==msel?'#ffd98a':'#aab','center'))}
+function title(){cine('gate',T);R(0,0,W,H,'rgba(0,0,0,.45)');T_('迷途',W/2,230,150,'#e0d8c0','center');T_('改编自原创小说《黑暗园区》· 反诈教育互动叙事',W/2,282,24,'#9ab','center');
+ ['键鼠','手柄','触屏'].forEach((n,i)=>{const x=190+i*300,s=i==tsel;R(x,330,260,210,s?'rgba(255,217,138,.16)':'rgba(255,255,255,.06)');g.strokeStyle=s?'#ffd98a':'#445';g.lineWidth=3;g.strokeRect(x,330,260,210);
+  T_(['⌨','🎮','📱'][i],x+130,430,64,'#fff','center');T_(n+'模式',x+130,490,30,s?'#ffd98a':'#bcc','center');T_(['A/D W E','摇杆 A B','虚拟按键'][i],x+130,525,17,'#789','center')});
+ T_('选择操作模式：A/D 切换，Enter / 手柄A / 点击 确认（仅触屏模式显示虚拟按键）',W/2,590,20,'#9ab','center');
+ if(hasSave()){R(440,610,400,56,'rgba(255,255,255,.08)');T_('继续存档（C / 手柄X / 点击此处）',W/2,646,22,'#ffd98a','center')}}
+function endScr(){const e=ENDS[endK];R(0,0,W,H,'rgba(0,0,0,.62)');T_('结局 '+endK+'　'+e[0],W/2,150,52,'#e8e0c8','center');
+ g.font='25px '+FN;g.fillStyle='#dde';g.textAlign='left';wrap(e[1],980).forEach((l,i)=>g.fillText(l,150,230+i*40));
+ g.fillStyle='#f0c850';wrap('💡 '+e[2],980).forEach((l,i)=>g.fillText(l,150,520+i*38));
+ T_('线索 '+inv.length+'/'+ALL+' · 被发现 '+caught+' 次　　按 A / 手柄A / 点击 返回标题',W/2,680,19,'#89a','center')}
+function draw(){g.clearRect(0,0,W,H);
+ if(mode=='title')title();
+ else if(mode=='end'){cine(ENDBG[endK],T);endScr()}
+ else if(mode=='dlg'&&bg){cine(bg,T);dlgBox()}
+ else{world();hud();if(mode=='dlg')dlgBox();if(mode=='inv')invPanel();if(mode=='menu')menu()}
+ if(fd.a>0)R(0,0,W,H,'rgba(0,0,0,'+fd.a+')')}
+function frame(ts){const dt=Math.min(.033,(ts-last)/1e3||0);last=ts;const[a,e]=poll();step(dt,a,e);ptr=null;draw();requestAnimationFrame(frame)}
+if([...(navigator.getGamepads?navigator.getGamepads():[])].some(x=>x))tsel=1;requestAnimationFrame(frame);
 </script></body></html>
